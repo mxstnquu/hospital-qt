@@ -45,7 +45,9 @@ Hospital Information System (C++/Qt/PostgreSQL)
 
 Настройка базы данных:
 ```
-psql -U postgres -f docs/struct_bd.psql
+sudo -i -u postgres
+createdb hospital_db
+psql -d hospital_db -f docs/struct_bd.psql
 ```
 
 # Build 
