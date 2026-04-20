@@ -5,7 +5,7 @@ Hospital Information System (C++/Qt/PostgreSQL)
 Кроссплатформенная информационная система для управления медицинским учреждением.
 
 # Screenshots
-<img width="2560" height="1440" alt="изображение" src="https://github.com/user-attachments/assets/855f7866-8813-4d72-a8be-5a635019f333" />
+<img width="2560" height="1407" alt="изображение" src="https://github.com/user-attachments/assets/0bd1d90c-7f97-47b9-bfda-0be1bca8efb2" />
 <img width="1277" height="699" alt="изображение" src="https://github.com/user-attachments/assets/4e7e5245-9aaa-40da-b4f1-aefd3b250ddc" />
 <img width="1270" height="694" alt="изображение" src="https://github.com/user-attachments/assets/db9f9ecc-f937-4a7c-990f-33cdb3ff887e" />
 
