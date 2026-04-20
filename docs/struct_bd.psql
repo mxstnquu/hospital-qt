@@ -1,0 +1,167 @@
+-- Структура БД
+
+-------------------------
+-----Создание таблиц-----
+-------------------------
+CREATE TABLE IF NOT EXISTS doctors (
+    doctor_id INTEGER PRIMARY KEY,
+    full_name TEXT NOT NULL,
+    speciality TEXT NOT NULL,
+    category TEXT
+);
+
+CREATE TABLE IF NOT EXISTS patients (
+    patient_id INTEGER PRIMARY KEY,
+    med_card_number TEXT UNIQUE NOT NULL,
+    full_name TEXT NOT NULL,
+    birth_date DATE NOT NULL,
+    phone TEXT,
+    address TEXT,
+    gender CHAR(1),
+    discount NUMERIC(5,2)
+);
+
+CREATE TABLE IF NOT EXISTS diagnoses (
+    diagnosis_code TEXT PRIMARY KEY,
+    diagnosis_name TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS patient_appointments (
+    appointment_id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    patient_id INTEGER NOT NULL REFERENCES patients(patient_id),
+    doctor_id INTEGER REFERENCES doctors(doctor_id),
+    appointment_date TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'planned',
+    diagnosis_code TEXT REFERENCES diagnoses(diagnosis_code),
+    treatment_notes TEXT
+);
+
+CREATE TABLE IF NOT EXISTS audit_log (
+    log_id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    event_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    username TEXT NOT NULL,
+    operation TEXT NOT NULL CHECK (operation IN ('INSERT', 'UPDATE', 'DELETE')),
+    table_name TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    user_id SERIAL PRIMARY KEY,
+    user_login VARCHAR(50) UNIQUE NOT NULL,
+    user_password VARCHAR(255) NOT NULL,
+    user_role VARCHAR(30) NOT NULL CHECK (user_role IN 
+        ('admin', 'registrar', 'doctor', 'analyst', 'accountant', 'patient')),
+    ref_id INTEGER,
+    full_name VARCHAR(150),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+------------------------
+-----Создание ролей-----
+------------------------
+
+CREATE ROLE r_admin WITH SUPERUSER;
+CREATE ROLE r_registrar;
+CREATE ROLE r_doctor;
+CREATE ROLE r_analyst;
+CREATE ROLE r_accountant;
+CREATE ROLE r_patient;
+
+-- role admin
+GRANT ALL ON doctors, patients, diagnoses, patient_appointments, audit_log, users TO r_admin;
+
+-- role registrar
+GRANT SELECT, INSERT, UPDATE ON patients TO r_registrar;
+GRANT INSERT ON patient_appointments TO r_registrar;
+GRANT SELECT ON doctors, diagnoses TO r_registrar;
+
+-- role doctor 
+GRANT SELECT ON patient_appointments, patients, diagnoses TO r_doctor;
+GRANT UPDATE (diagnosis_code, treatment_notes, status) ON patient_appointments TO r_doctor;
+
+-- role analyst
+GRANT SELECT ON doctors, patients, diagnoses, patient_appointments, audit_log TO r_analyst;
+
+-- role accountant
+GRANT SELECT ON patient_appointments TO r_accountant;
+GRANT SELECT, UPDATE (discount) ON patients TO r_accountant;
+
+-- role patient
+GRANT SELECT ON patients, diagnoses, patient_appointments TO r_patient;
+GRANT SELECT ON doctors TO r_patient;
+GRANT INSERT, UPDATE ON patient_appointments TO r_patient;
+
+
+-------------------------
+----Заполнение таблиц----
+-------------------------
+
+-- Врачи
+INSERT INTO doctors (doctor_id, full_name, speciality, category) VALUES
+(1, 'Иванов Иван Иванович', 'Терапевт', 'Высшая'),
+(2, 'Петров Петр Петрович', 'Окулист', 'Первая'),
+(3, 'Сидоров Сергей Сергеевич', 'Хирург', 'Вторая'),
+(4, 'Кузнецова Анна Сергеевна', 'Невролог', 'Высшая'),
+(5, 'Михайлов Дмитрий Алексеевич', 'Кардиолог', 'Первая'),
+(6, 'Федорова Екатерина Павловна', 'Педиатр', 'Вторая'),
+(7, 'Соколов Алексей Владимирович', 'Дерматолог', 'Высшая');
+
+-- Пациенты
+INSERT INTO patients (patient_id, med_card_number, full_name, birth_date, phone, address, gender, discount) VALUES
+(1, 'MC001', 'Андреев Андрей Андреевич', '2000-03-10', '+79123456789', 'ул. Ленина, д.1', 'М', 10.00),
+(2, 'MC002', 'Смирнова Елена Васильевна', '1990-03-25', '+79223334455', 'ул. Пушкина, д.3', 'Ж', 5.00),
+(3, 'MC003', 'Васильев Василий Васильевич', '1978-11-03', '+79344556677', 'пр. Мира, д.2', 'М', 0.00),
+(4, 'MC004', 'Козлова Мария Игоревна', '1985-07-15', '+79001234567', 'ул. Садовая, д.10', 'Ж', 15.00),
+(5, 'MC005', 'Новиков Павел Андреевич', '1992-11-02', '+79002345678', 'ул. Лесная, д.5', 'М', 0.00),
+(6, 'MC006', 'Морозова Ольга Викторовна', '1975-04-28', '+79003456789', 'ул. Цветочная, д.8', 'Ж', 20.00),
+(7, 'MC007', 'Тарасов Игорь Николаевич', '2001-09-19', '+79004567890', 'ул. Школьная, д.3', 'М', 5.00);
+
+-- Диагнозы
+INSERT INTO diagnoses (diagnosis_code, diagnosis_name) VALUES
+('J06.9', 'Острая респираторная инфекция верхних дыхательных путей неуточненная'),
+('I10',   'Эссенциальная (первичная) гипертензия'),
+('E11.9', 'Сахарный диабет 2 типа без осложнений'),
+('K29.5', 'Хронический гастрит неуточненный'),
+('F32.9', 'Депрессивный эпизод неуточненный');
+
+-- Записи к врачу
+INSERT INTO patient_appointments (patient_id, doctor_id, appointment_date, status, diagnosis_code, treatment_notes) VALUES
+(1, 1, NOW() - INTERVAL '1 day',  'completed', NULL, NULL),
+(1, 2, NOW() + INTERVAL '2 days', 'planned',   NULL, NULL),
+(2, 1, NOW() - INTERVAL '5 days', 'completed', NULL, NULL),
+(3, 3, NOW() + INTERVAL '1 day',  'planned',   NULL, NULL),
+(1, 4, NOW() + INTERVAL '3 days', 'planned',   NULL, NULL),
+(2, 5, NOW() + INTERVAL '1 day',  'planned',   NULL, NULL),
+(3, 6, NOW() - INTERVAL '2 days', 'completed', 'J06.9', 'Рекомендован постельный режим'),
+(4, 1, NOW() + INTERVAL '5 days', 'planned',   NULL, NULL),
+(5, 2, NOW() - INTERVAL '10 days','completed', 'I10',   'Назначен амлодипин'),
+(6, 3, NOW() + INTERVAL '7 days', 'planned',   NULL, NULL),
+(7, 4, NOW() - INTERVAL '1 day',  'completed', 'E11.9', 'Контроль глюкозы, диета');
+
+INSERT INTO users (user_login, user_password, user_role, ref_id, full_name) VALUES
+('MC001', 'pass1', 'patient', 1, 'Андреев Андрей Андреевич'),
+('MC002', 'pass2', 'patient', 2, 'Смирнова Елена Васильевна'),
+('MC003', 'pass3', 'patient', 3, 'Васильев Василий Васильевич'),
+('MC004', 'pass4', 'patient', 4, 'Козлова Мария Игоревна'),
+('MC005', 'pass5', 'patient', 5, 'Новиков Павел Андреевич'),
+('MC006', 'pass6', 'patient', 6, 'Морозова Ольга Викторовна'),
+('MC007', 'pass7', 'patient', 7, 'Тарасов Игорь Николаевич'),
+('doctor_1', 'pass1', 'doctor', 1, 'Иванов Иван Иванович'),
+('doctor_2', 'pass2', 'doctor', 2, 'Петров Петр Петрович'),
+('doctor_3', 'pass3', 'doctor', 3, 'Сидоров Сергей Сергеевич'),
+('doctor_4', 'pass4', 'doctor', 4, 'Кузнецова Анна Сергеевна'),
+('doctor_5', 'pass5', 'doctor', 5, 'Михайлов Дмитрий Алексеевич'),
+('doctor_6', 'pass6', 'doctor', 6, 'Федорова Екатерина Павловна'),
+('doctor_7', 'pass7', 'doctor', 7, 'Соколов Алексей Владимирович'),
+('registrar_1', 'pass1', 'registrar', NULL, 'Регистраторова Анна Петровна'),
+('analyst_1',   'pass2', 'analyst',   NULL, 'Аналитиков Дмитрий Сергеевич'),
+('accountant_1', 'pass3', 'accountant', NULL, 'Бухгалтерова Ирина Владимировна'),
+('admin_1',     'admin', 'admin',      NULL, 'Администраторов Алексей Иванович');
+
+
+SELECT setval('patient_appointments_appointment_id_seq',
+              (SELECT COALESCE(MAX(appointment_id), 0) FROM patient_appointments));
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+UPDATE users SET user_password = encode(sha256(user_password::bytea), 'hex');
