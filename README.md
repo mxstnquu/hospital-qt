@@ -60,6 +60,7 @@ cmake --build build
 
 # Структура проекта
 
+```
 hospital-qt/
 ├── CMakeLists.txt
 ├── LICENSE
@@ -80,3 +81,4 @@ hospital-qt/
     ├── PatientWindow.cpp
     ├── RegistrarWindow.cpp
     └── RegistrationWindow.cpp
+```
